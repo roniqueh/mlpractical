@@ -323,8 +323,8 @@ class LeakyReluLayer(Layer):
 
         For inputs `x` and outputs `y` this corresponds to `y = max(0, x)`.
         """
-        outputs = inputs #remove and replace with your code
-        return outputs
+        
+        return (-0.99 * np.less_equal(inputs, 0) + 1.) * inputs
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
         """Back propagates gradients through a layer.
@@ -332,8 +332,8 @@ class LeakyReluLayer(Layer):
         Given gradients with respect to the outputs of the layer calculates the
         gradients with respect to the layer inputs.
         """
-        gradients = inputs #remove and replace with your code
-        return gradients
+        gradients = (outputs / inputs) * grads_wrt_outputs
+        return gradients 
 
     def __repr__(self):
         return 'LeakyReluLayer'
@@ -346,8 +346,8 @@ class ELULayer(Layer):
 
         For inputs `x` and outputs `y` this corresponds to `y = max(0, x)`.
         """
-        outputs = inputs #remove and replace with your code
-        return outputs
+        
+        return np.less_equal(inputs, 0) * (np.exp(inputs) - 1. - inputs) + inputs
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
         """Back propagates gradients through a layer.
@@ -355,8 +355,9 @@ class ELULayer(Layer):
         Given gradients with respect to the outputs of the layer calculates the
         gradients with respect to the layer inputs.
         """
-        gradients = inputs #remove and replace with your code
-        return gradients
+        gradients = (np.less_equal(inputs, 0) * (np.exp(inputs) - 1.) + 1.) \
+        * grads_wrt_outputs
+        return gradients 
 
     def __repr__(self):
         return 'ELULayer'
@@ -370,16 +371,20 @@ class SELULayer(Layer):
 
         For inputs `x` and outputs `y` this corresponds to `y = max(0, x)`.
         """
-        outputs = inputs #remove and replace with your code
+        outputs = 1.0507 * (np.less_equal(inputs, 0) * 1.6733 \
+                            * (np.exp(inputs) - 1. - np.divide(inputs, 1.6733)) \
+                               + inputs)
         return outputs
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
         """Back propagates gradients through a layer.
-
         Given gradients with respect to the outputs of the layer calculates the
         gradients with respect to the layer inputs.
         """
-        gradients = inputs #remove and replace with your code
+
+        gradients = 1.0507 * (np.less_equal(inputs, 0) * 1.6733 \
+                            * (np.exp(inputs) - np.divide(1., 1.6733)) \
+                               + 1) * grads_wrt_outputs
         return gradients
 
     def __repr__(self):
@@ -427,8 +432,6 @@ class SoftmaxLayer(Layer):
     def __repr__(self):
         return 'SoftmaxLayer'
 
-<<<<<<< HEAD
-=======
 class RadialBasisFunctionLayer(Layer):
     """Layer implementing projection to a grid of radial basis functions."""
 
@@ -488,4 +491,3 @@ class RadialBasisFunctionLayer(Layer):
 
     def __repr__(self):
         return 'RadialBasisFunctionLayer(grid_dim={0})'.format(self.grid_dim)
->>>>>>> 018bb05de201ea5eb368b75b9c4de986e01475dd
