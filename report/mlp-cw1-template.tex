@@ -52,7 +52,7 @@
 %% You probably do not need to change anything above this comment
 
 %% REPLACE this with your student number
-\def\studentNumber{s1754321}
+\def\studentNumber{s1794066}
 
 \begin{document} 
 
@@ -65,23 +65,44 @@
 ]
 
 \begin{abstract} 
-The abstract should be 100--200 words long,  providing a concise summary of the contents of your report.
+This report compares the effects of using four different activation functions in the hidden layers of a neural network. As a baseline, we used the same architecture, but with a sigmoidal activation function. We also investigate the effects of network depth, and weights initialisation strategies. Evaluated by validation set accuracy on the MNIST dataset, we find Leaky ReLU to perform the best of the activation functions. We also find that using 7 layers and a Glorot weights initialisation scheme gives us the highest validation set accuracy. 
 \end{abstract} 
 
 \section{Introduction}
 \label{sec:intro}
-This document provides a template for the MLP coursework 1 report.  In particular, it structures the document into five sections  (plus an abstract and the references) -- you should keep to this structure for your report.  If you want to use subsections within a section that is fine, but please do not use any deeper structuring.  In this template the text in each section will include an outline of what you should include in each section, along with some practical LaTeX examples (for example figures, tables, algorithms).  Your document should be no longer than \textbf{six pages},  with an additional page allowed for references.
+Neural networks have been used extensively for classification problems in machine learning. They can be evaluated for an input $\mathbf{x} \in \mathrm{R}^{Dx1}$ for $l = {1, \dots, L+1}$
+\begin{align*}
+\mathbf{h}^{(1)} &= W^{(1)}\mathbf{x} + \mathbf{b}^{(1)}
+\\
+\mathbf{a}^{(1)} &= \mathbf{g}^{(1)} (\mathbf{h}^{(1)})
+\\
+\mathbf{h}^{(l)} &= W^{(l)}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}
+\\
+\mathbf{a}^{(l)} &= \mathbf{g}^{(l)} (\mathbf{h}^{(l)})
+\\ 
+\mathbf{f(\mathbf{x})} &= \mathbf{a}^{(L+1)}
+ \end{align*}
+ where $L$ is the number of hidden layers in the network. If $K^{(l)}$ is the dimensionality of hidden layer $l$, then $W^{(l)} \in \mathrm{R}^{K^{(l)}xK^{(l-1)}}$ and $b \in \mathrm{R}^{K^{(l)}}$. In supervised learning, there is a training dataset with training examples $\mathbf{x}^{(m)}$ and target outputs $\mathbf{y}^{(m)}$.  An associated error function $E$ which depends on $\mathbf{x}^{(m)}$, $\mathbf{y}^{(m)}$ and the weights matrices $W^{(l)}$ is used to evaluate predictions of the network, and subsequently train the weights. 
+ 
+The choice of function $\mathbf{g}^{(l)}$ is an important one. First of all, it must be non-linear so that we can learn non-linear functions. The gradient of the non-linear function $\mathbf{g}^{(l)}$ is used in the learning procedure by multiplying with ``error signals'' calculated from layer $l+1$. Therefore, it is also important that the gradient of our activation function is sufficiently large enough to allow learning to occur. 
 
-The introduction should place your work in context, giving the overall motivation for the work, and clearly outlining the research questions you have explored -- in this case comparison of the behaviour of the different activation functions,  experimental investigation of the impact of the depth of the network with respect to accuracy, and experimental investigation of different approaches to weight initialisation.  This section should also include a concise description of the MNIST task and  data -- be precise: for example state the size of the training and validation sets.
+This report looks to evaluate the performance of four different activation functions. We will evaluate the performance of the trained models on validation set accuracy. Additionally, we will be looking at the effects of network depth and weights initialisation strategies on this same metric.
 
-
+Our networks are trained and evaluated on the MNIST dataset of handwritten digits. Each data point is a 28 x 28 image, presented as a 784-dimensional vector, with an associated integer denoting the digit. We split the dataset into a training dataset (with 50000 examples) and a validation set (with 10000 examples). 
 \section{Activation functions}
 \label{sec:actfn}
-This section should cover the theoretical methodology -- in this case you should present the four activation functions: ReLU, Leaky ReLU, ELU, and SELU.  I didn't do it in this document, but the first time you use an acronym you should say what it stands for, for example Restricted Linear Unit (ReLU).  You should use equations to concisely describe each activation function.  For example, ReLU: 
+The four activation functions we consider are:
+\begin{enumerate}
+\item Rectified Linear Units (ReLU)
+\item Leaky ReLU
+\item Exponential Linear Units (ELU)
+\item Scaled Exponential Linear Units (SELU)
+\end{enumerate}
+ReLU: 
 \begin{equation}
   \relu(x) = \max(0, x) ,
 \end{equation} 
-which has the gradient:
+with gradient:
 \begin{equation}
   \frac{d}{dx} \relu(x) =
      \begin{cases} 
@@ -89,55 +110,99 @@ which has the gradient:
       1       & \quad \text{if } x > 0 .
     \end{cases} 
 \end{equation}
-The \LaTeX for the derivatives is slightly more complicated.  We provided definitions near the top of the file (the part before \verb+\begin{document}+) for \verb+\relu+, \verb+\lrelu+, \verb+\elu+, and \verb+\selu+.  There is no need to discuss the unit tests for these activation functions in this report.
 
-It is probably not needed in this report, but if you would like to include an algorithm in your report, please use the \verb+algorithm+ and \verb+algorithmic+ environments to format pseudocode (for instance, Algorithm~\ref{alg:example}). These require the corresponding style files, \verb+algorithm.sty+ and \verb+algorithmic.sty+ which are supplied with this package. 
+Leaky ReLU: 
+\begin{equation}
+  \lrelu(x) =
+     \begin{cases} 
+      \alpha x      & \quad \text{if } x \leq  0 \\
+      x       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation} 
+with gradient:
+\begin{equation}
+  \frac{d}{dx} \lrelu(x) =
+     \begin{cases} 
+      \alpha      & \quad \text{if } x \leq  0 \\
+      1       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation}
+We set $\alpha = 0.01$, but this can also be considered a parameter. In this case, we would optimise for $\alpha$ which is called Parametric ReLU. 
 
-\begin{algorithm}[ht]
-\begin{algorithmic}
-   \STATE {\bfseries Input:} data $x_i$, size $m$
-   \REPEAT
-   \STATE Initialize $noChange = true$.
-   \FOR{$i=1$ {\bfseries to} $m-1$}
-   \IF{$x_i > x_{i+1}$} 
-   \STATE Swap $x_i$ and $x_{i+1}$
-   \STATE $noChange = false$
-   \ENDIF
-   \ENDFOR
-   \UNTIL{$noChange$ is $true$}
-\end{algorithmic}
-  \caption{Bubble Sort}
-  \label{alg:example}
-\end{algorithm}
+ELU: 
+\begin{equation}
+  \elu(x) =
+     \begin{cases} 
+      \alpha (\exp(x) - 1)      & \quad \text{if } x \leq  0 \\
+      x       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation} 
+with gradient:
+\begin{equation}
+  \frac{d}{dx} \elu(x) =
+     \begin{cases} 
+      \alpha\exp(x)      & \quad \text{if } x \leq  0 \\
+      1       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation}
+We set $\alpha = 1$, so that we have a smooth function.
 
+SELU: 
+\begin{equation}
+  \selu(x) =
+     \lambda \begin{cases} 
+      \alpha (\exp(x) - 1)      & \quad \text{if } x \leq  0 \\
+      x       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation} 
+with gradient:
+\begin{equation}
+  \frac{d}{dx} \selu(x) =
+     \lambda \begin{cases} 
+      \alpha\exp(x)      & \quad \text{if } x \leq  0 \\
+      1       & \quad \text{if } x > 0 .
+    \end{cases} 
+\end{equation}
+\citep{Klambauer17} provides values of $\alpha$ and $\lambda$ such that the activations of each layer converge towards zero mean and unit activation. This results in us setting $\lambda = 1.6733$ and $\alpha = 1.0507$.
 \section{Experimental comparison of activation functions}
 \label{sec:actexpts}
-In this section you should present the results and discussion of your experiments comparing networks using the different activation functions on the MNIST task.  As explained in the coursework document, you should use 2 hidden layers with 100 hidden units per layer for these experiments.  You can compare the learning curves (error vs epoch) for training and/or validation, and the validation set accuracies. 
+In order to investigate the effects of the activation function in hidden layers, we had to fix the rest of the network architecture. We used a network with two hidden layers. The hidden layers have dimension 100. The networks were trained using a batch size of 50, and with 100 epochs (passes through the training data). The weights we used were from the fully trained model, i.e. early-stopping was not implemented. We use the sigmoid function for hidden layer activations as a baseline to compare our other models with. The output layer, as is the case with all the networks used in this report, uses a SoftMax layer for the output activation. 
 
-Your experimental sections should include graphs (for instance, figure~\ref{fig:sample-graph}) and/or tables (for instance, table~\ref{tab:sample-table})\footnote{These examples were taken from the ICML template paper.}, using the \verb+figure+ and \verb+table+ environments, in which you use \verb+\includegraphics+ to include an image (pdf, png, or jpg formats).  Please export graphs as 
-\href{https://en.wikipedia.org/wiki/Vector_graphics}{vector graphics}
-rather than \href{https://en.wikipedia.org/wiki/Raster_graphics}{raster
-files} as this will make sure all detail in the plot is visible.
-Matplotlib supports saving high quality figures in a wide range of
-common image formats using the
-\href{http://matplotlib.org/api/pyplot_api.html\#matplotlib.pyplot.savefig}{\texttt{savefig}}
-function. \textbf{You should use \texttt{savefig} rather than copying
-the screen-resolution raster images outputted in the notebook.} An
-example of using \texttt{savefig} to save a figure as a PDF file (which
-can be included as graphics in a \LaTeX document is given in the coursework document.
+First we look at the learning curves. Figure~\ref{fig:act-tr-err} compares how the error changes as training goes on for each of the different activation functions.    
 
-If you need a figure or table to stretch across two columns use the \verb+figure*+ or \verb+table*+ environment instead of the \verb+figure+ or \verb+table+ environment.  Use the \verb+subfigure+ environment if you want to include multiple graphics in a single figure.
+We can do the same with the validation set and see how validation error changes as our model is trained for longer, shown in figure~\ref{fig:act-val-err}.
+
+Figure~\ref{fig:act-val-acc} compares the different models with regards to accuracy of predictions on the validation set, which is summarised in table~\ref{tab:act-table}.
+
+Immediately, from figure~\ref{fig:act-tr-err}, we can see that the network with sigmoid layers learns much slower than any other network. This is due to the fact that the sigmoid function saturates for extreme inputs, and so we have the problem of vanishing gradients. This results in smaller weight updates, and as a result, slower learning. The other networks seem to learn at a similar rate to each other.
+
+Looking at figure~\ref{fig:act-val-err}, we see that the sigmoid network has the lowest validation error (at end of training) but table~\ref{tab:act-table} shows that it has the worst classification rate. We hypothesise that the other networks may be predicting classes more confidently than the sigmoid network. This means that when there is a misclassification in these models, the error is higher. From this table, we also see that using Leaky ReLU provides the best performance (marginally).
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{activations_tr_error}}
+\caption{Comparison of using different activation functions on training error}
+\label{fig:act-tr-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
 
 \begin{figure}[tb]
 \vskip 5mm
 \begin{center}
-\centerline{\includegraphics[width=\columnwidth]{icml_numpapers}}
-\caption{Historical locations and number of accepted papers for International
-  Machine Learning Conferences (ICML 1993 -- ICML 2008) and
-  International Workshops on Machine Learning (ML 1988 -- ML
-  1992). At the time this figure was produced, the number of
-  accepted papers for ICML 2008 was unknown and instead estimated.}
-\label{fig:sample-graph}
+\centerline{\includegraphics[width=\columnwidth]{activations_error}}
+\caption{Comparison of using different activation functions on validation error}
+\label{fig:act-val-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{activations_acc}}
+\caption{Comparison of using different activation functions on validation accuracy}
+\label{fig:act-val-acc}
 \end{center}
 \vskip -5mm
 \end{figure} 
@@ -147,50 +212,160 @@ If you need a figure or table to stretch across two columns use the \verb+figure
 \begin{center}
 \begin{small}
 \begin{sc}
-\begin{tabular}{lcccr}
+\begin{tabular}{lc}
 \hline
 \abovespace\belowspace
-Data set & Naive & Flexible & Better? \\
+Activation function & Validation Accuracy  \\
 \hline
 \abovespace
-Breast    & 95.9$\pm$ 0.2& 96.7$\pm$ 0.2& $\surd$ \\
-Cleveland & 83.3$\pm$ 0.6& 80.0$\pm$ 0.6& $\times$\\
-Glass2    & 61.9$\pm$ 1.4& 83.8$\pm$ 0.7& $\surd$ \\
-Credit    & 74.8$\pm$ 0.5& 78.3$\pm$ 0.6&         \\
-Horse     & 73.3$\pm$ 0.9& 69.7$\pm$ 1.0& $\times$\\
-Meta      & 67.1$\pm$ 0.6& 76.5$\pm$ 0.5& $\surd$ \\
-Pima      & 75.1$\pm$ 0.6& 73.9$\pm$ 0.5&         \\
-\belowspace
-Vehicle   & 44.9$\pm$ 0.6& 61.5$\pm$ 0.4& $\surd$ \\
-\hline
+Sigmoid    & 97.7  \\
+ReLU & 98.0  \\
+Leaky ReLU    & 98.0 \\
+ELU    &  97.9\\
+SELU   &  97.9 \\
 \end{tabular}
 \end{sc}
 \end{small}
-\caption{Classification accuracies for naive Bayes and flexible 
-Bayes on various data sets.}
-\label{tab:sample-table}
+\caption{Validation accuracies using different activation functions}
+\label{tab:act-table}
 \end{center}
 \vskip -3mm
 \end{table}
 
 \section{Deep neural network experiments}
 \label{sec:dnnexpts}
-This section should report on your experiments on deeper networks for MNIST.  The two sets of experiments are to explore the impact of the depth of the network (number of hidden layers), and a comparison of different approaches to weight initialisation.
+\subsection{Changing network depth}
+In the next part of our investigation, we look at the effects of network depth on validation accuracy. 
 
-In this section, and in the previous section, you should present your experimental results clearly and concisely, followed by an interpretation and discussion of results. You need to present your results in a way that makes it easy for a reader to understand what they mean. You should facilitate comparisons either using graphs with multiple curves or (if appropriate, e.g. for accuracies) a results table. You need to avoid having too many figures, poorly labelled graphs, and graphs which should be comparable but which use different axis scales. A good presentation will enable the reader to compare trends in the same graph -- each graph should summarise the results relating to a particular research (sub)question.
+Using the results from the previous section, we decided to use Leaky ReLU as our hidden layer activation function. For $L \in \{2, 3, 4, 5, 6, 7, 8\}$, we trained a network with $L$ hidden layers using a batch size of 50 for 100 epochs, like before. Again, early-stopping was not implemented so we use the fully-trained network in our evaluations.
 
-Your discussion should interpret the results, both in terms of summarising the outcomes of a particular experiment, and attempting to relate to the underlying models. A good report would have some analysis, resulting in an understanding of why particular results are observed, perhaps with reference to the literature. Use bibtex to organise your references -- in this case the references are in the file \verb+example-refs.bib+.  Here is a an example reference \citep{langley00}.  
+The graphs in this section (and the next subsection) are presented in the same order as in the previous section: training error (or learning curve), followed by validation error, and finally validation accuracy. Validation accuracy is summarised in table~\ref{tab:lay-table}.
 
+We see from figure~\ref{fig:lay-tr-err} that changing network depth doesn't seem to impact how quickly the different networks learn; all networks seem to have fully fit to the training data by epoch 40. 
 
+Figure~\ref{fig:lay-val-err} shows the two layer model having the lowest validation error, but this doesn't lead to good performance, as seen in table~\ref{tab:lay-table}. Again, we hypothesise that this model is making weaker predictions on the whole than the deeper networks. From this table, we see that the seven layer network has the highest validation accuracy. We suspect that the eight layer network overfits to the training data so much so as to cause the most probable class for certain examples to change. This would cause a lower validation accuracy than the seven layer model. 
 
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{layers_tr_error}}
+\caption{Comparison of network depth on training error}
+\label{fig:lay-tr-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{layers_error}}
+\caption{Comparison of network depth on validation error}
+\label{fig:lay-val-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{layers_acc}}
+\caption{Comparison of network depth on validation accuracy}
+\label{fig:lay-val-acc}
+\end{center}
+\vskip -5mm
+\end{figure}
+
+\begin{table}[tb]
+\vskip 3mm
+\begin{center}
+\begin{small}
+\begin{sc}
+\begin{tabular}{lc}
+\hline
+\abovespace\belowspace
+Number of hidden layers & Validation Accuracy  \\
+\hline
+\abovespace
+Two    & 98.0  \\
+Three  & 98.0  \\
+Four    & 98.0 \\
+Five    &  97.9\\
+Six   &  98.1 \\
+Seven	  & 98.3 \\
+Eight    & 98.2 \\
+\end{tabular}
+\end{sc}
+\end{small}
+\caption{Validation accuracies with different network depths}
+\label{tab:lay-table}
+\end{center}
+\vskip -3mm
+\end{table}
+\subsection{Changing weights initialisation}
+In this subsection, we explore the effects of changing the weights initialisation on validation accuracy. Again, using the results from the previous section, we decided to use a network with seven hidden layers, using the Leaky ReLU activation function for hidden layers. 
+
+We explored three different weights initialisations: FanIn, FanOut and Glorot. FanIn sets uniformly-distributed weights so that the variance of the weights for a layer is independent of the number of incoming connections. FanOut sets uniformly-distributed weights so that the variance of the weights for a layer is independent of the number of outgoing connections. Glorot initialisation makes a compromise between the two.
+
+Table~\ref{tab:init-table} shows the Glorot initialisation providing the best performance. We suspect this is because this initialisation keeps weights in a more suitable range so that the network has the chance to learn in more depth. 
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{init_tr_error}}
+\caption{Comparison of different weights initialisations on training error}
+\label{fig:init-tr-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{init_error}}
+\caption{Comparison of different weights initialisations on validation error}
+\label{fig:init-val-err}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{figure}[tb]
+\vskip 5mm
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{init_acc}}
+\caption{Comparison of different weights initialisations on validation accuracy}
+\label{fig:init-val-acc}
+\end{center}
+\vskip -5mm
+\end{figure} 
+
+\begin{table}[tb]
+\vskip 3mm
+\begin{center}
+\begin{small}
+\begin{sc}
+\begin{tabular}{lc}
+\hline
+\abovespace\belowspace
+Weights initialisation & Validation Accuracy  \\
+\hline
+\abovespace
+FanIn    & 98.0  \\
+FanOut  & 98.2  \\
+Glorot    & 98.3 \\
+\end{tabular}
+\end{sc}
+\end{small}
+\caption{Validation accuracies with different weights initialisations}
+\label{tab:init-table}
+\end{center}
+\vskip -3mm
+\end{table}
 
 \section{Conclusions}
 \label{sec:concl}
-You should draw conclusions from the experiments, related to the research questions outlined in the introduction (section~\ref{sec:intro}). You should state the conclusions clearly and concisely. It is good if the conclusion from one experiment influenced what you did in later experiments -- your aim is to learn from your experiments. Extra credit if you relate your findings to what has been reported in the literature.
+From our experiments, we conclude that in a network with two hidden layers, using the Leaky ReLU activation function provides the highest validation accuracy. This provided better results than the baseline (sigmoid) due to there no longer being a vanishing gradient.  Using this activation function, but varying depth (i.e. number of hidden layers) showed us that using seven hidden layers generalised the best. Changing the weights initialisation seemed to have a small impact on validation accuracy: with FanIn performing worse than FanOut and Glorot. 
 
-A good conclusions section would also include a further work discussion, building on work done so far, and referencing the literature where appropriate.
-
-\bibliography{example-refs}
+Further work could look at whether similar results hold for different data sets (apart from network depth, which we hypothesise is largely dependent on the task at hand). Additionally, we could explore self-normalising networks \citep{Klambauer17} and investigate how network depth affects learning in this case. 
+\bibliography{report-refs}
 
 \end{document} 
 

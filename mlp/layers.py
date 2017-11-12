@@ -371,7 +371,7 @@ class SELULayer(Layer):
 
         For inputs `x` and outputs `y` this corresponds to `y = max(0, x)`.
         """
-        outputs = 1.0507 * (np.less_equal(inputs, 0) * 1.6733 \
+        outputs = 1.0507 * (np.less(inputs, 0) * 1.6733 \
                             * (np.exp(inputs) - 1. - np.divide(inputs, 1.6733)) \
                                + inputs)
         return outputs
@@ -382,7 +382,7 @@ class SELULayer(Layer):
         gradients with respect to the layer inputs.
         """
 
-        gradients = 1.0507 * (np.less_equal(inputs, 0) * 1.6733 \
+        gradients = 1.0507 * (np.less(inputs, 0) * 1.6733 \
                             * (np.exp(inputs) - np.divide(1., 1.6733)) \
                                + 1) * grads_wrt_outputs
         return gradients
@@ -406,7 +406,7 @@ class SoftmaxLayer(Layer):
         Returns:
             outputs: Array of layer outputs of shape (batch_size, output_dim).
         """
-        exp_inputs = np.exp(inputs)
+        exp_inputs = np.exp(inputs - inputs.max(-1)[:, None])
         return exp_inputs / exp_inputs.sum(-1)[:, None]
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
