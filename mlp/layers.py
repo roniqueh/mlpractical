@@ -358,7 +358,10 @@ class BatchNormalizationLayer(StochasticLayerWithParameters):
     def fprop(self, inputs, stochastic=True):
         """Forward propagates inputs through a layer."""
 
-        raise NotImplementedError
+        mu = np.mean(inputs, 0)
+        var = np.var(inputs, 0)
+        norm_inputs = (inputs - mu)/((var + self.epsilon) ** 0.5)
+        return self.beta + self.gamma * norm_inputs
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
         """Back propagates gradients through a layer.
@@ -377,8 +380,9 @@ class BatchNormalizationLayer(StochasticLayerWithParameters):
             Array of gradients with respect to the layer inputs of shape
             (batch_size, input_dim).
         """
-
-        raise NotImplementedError
+        
+        var = np.var(inputs)
+        return self.beta + self.gamma/((var + self.epsilon) ** 0.5)
 
     def grads_wrt_params(self, inputs, grads_wrt_outputs):
         """Calculates gradients with respect to layer parameters.
@@ -392,7 +396,7 @@ class BatchNormalizationLayer(StochasticLayerWithParameters):
             list of arrays of gradients with respect to the layer parameters
             `[grads_wrt_weights, grads_wrt_biases]`.
         """
-        raise NotImplementedError
+        return 0
 
     def params_penalty(self):
         """Returns the parameter dependent penalty term for this layer.
