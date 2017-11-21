@@ -5,6 +5,7 @@ This module provides classes for loading datasets and iterating over batches of
 data points.
 """
 
+
 import pickle
 import gzip
 import numpy as np
@@ -12,8 +13,11 @@ import os
 from mlp import DEFAULT_SEED
 
 
+
+
 class DataProvider(object):
     """Generic data provider."""
+
 
     def __init__(self, inputs, targets, batch_size, max_num_batches=-1,
                  shuffle_order=True, rng=None):
@@ -49,10 +53,12 @@ class DataProvider(object):
         self.rng = rng
         self.new_epoch()
 
+
     @property
     def batch_size(self):
         """Number of data points to include in each batch."""
         return self._batch_size
+
 
     @batch_size.setter
     def batch_size(self, value):
@@ -61,10 +67,12 @@ class DataProvider(object):
         self._batch_size = value
         self._update_num_batches()
 
+
     @property
     def max_num_batches(self):
         """Maximum number of batches to iterate over in an epoch."""
         return self._max_num_batches
+
 
     @max_num_batches.setter
     def max_num_batches(self, value):
@@ -72,6 +80,7 @@ class DataProvider(object):
             raise ValueError('max_num_batches must be -1 or > 0')
         self._max_num_batches = value
         self._update_num_batches()
+
 
     def _update_num_batches(self):
         """Updates number of batches to iterate over."""
@@ -84,6 +93,7 @@ class DataProvider(object):
         else:
             self.num_batches = min(self.max_num_batches, possible_num_batches)
 
+
     def __iter__(self):
         """Implements Python iterator interface.
 
@@ -94,14 +104,17 @@ class DataProvider(object):
         """
         return self
 
+
     def new_epoch(self):
         """Starts a new epoch (pass through data), possibly shuffling first."""
         self._curr_batch = 0
         if self.shuffle_order:
             self.shuffle()
 
+
     def __next__(self):
         return self.next()
+
 
     def reset(self):
         """Resets the provider to the initial state."""
@@ -111,12 +124,14 @@ class DataProvider(object):
         self.targets = self.targets[inv_perm]
         self.new_epoch()
 
+
     def shuffle(self):
         """Randomly shuffles order of data."""
         perm = self.rng.permutation(self.inputs.shape[0])
         self._current_order = self._current_order[perm]
         self.inputs = self.inputs[perm]
         self.targets = self.targets[perm]
+
 
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
@@ -133,8 +148,10 @@ class DataProvider(object):
         self._curr_batch += 1
         return inputs_batch, targets_batch
 
+
 class MNISTDataProvider(DataProvider):
     """Data provider for MNIST handwritten digit images."""
+
 
     def __init__(self, which_set='train', batch_size=100, max_num_batches=-1,
                  shuffle_order=True, rng=None):
@@ -175,10 +192,12 @@ class MNISTDataProvider(DataProvider):
         super(MNISTDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
 
+
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
         inputs_batch, targets_batch = super(MNISTDataProvider, self).next()
         return inputs_batch, self.to_one_of_k(targets_batch)
+
 
     def to_one_of_k(self, int_targets):
         """Converts integer coded class target to 1 of K coded targets.
@@ -199,8 +218,10 @@ class MNISTDataProvider(DataProvider):
         one_of_k_targets[range(int_targets.shape[0]), int_targets] = 1
         return one_of_k_targets
 
+
 class EMNISTDataProvider(DataProvider):
     """Data provider for EMNIST handwritten digit images."""
+
 
     def __init__(self, which_set='train', batch_size=100, max_num_batches=-1,
                  shuffle_order=True, rng=None):
@@ -244,10 +265,12 @@ class EMNISTDataProvider(DataProvider):
         super(EMNISTDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
 
+
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
         inputs_batch, targets_batch = super(EMNISTDataProvider, self).next()
         return inputs_batch, self.to_one_of_k(targets_batch)
+
 
     def to_one_of_k(self, int_targets):
         """Converts integer coded class target to 1 of K coded targets.
@@ -269,8 +292,11 @@ class EMNISTDataProvider(DataProvider):
         return one_of_k_targets
 
 
+
+
 class MetOfficeDataProvider(DataProvider):
     """South Scotland Met Office weather data provider."""
+
 
     def __init__(self, window_size, batch_size=10, max_num_batches=-1,
                  shuffle_order=True, rng=None):
@@ -316,7 +342,9 @@ class MetOfficeDataProvider(DataProvider):
         super(MetOfficeDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
 
+
 class CCPPDataProvider(DataProvider):
+
 
     def __init__(self, which_set='train', input_dims=None, batch_size=10,
                  max_num_batches=-1, shuffle_order=True, rng=None):
@@ -363,8 +391,11 @@ class CCPPDataProvider(DataProvider):
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
 
 
+
+
 class AugmentedMNISTDataProvider(MNISTDataProvider):
     """Data provider for MNIST dataset which randomly transforms images."""
+
 
     def __init__(self, which_set='train', batch_size=100, max_num_batches=-1,
                  shuffle_order=True, rng=None, transformer=None):
@@ -392,6 +423,7 @@ class AugmentedMNISTDataProvider(MNISTDataProvider):
         super(AugmentedMNISTDataProvider, self).__init__(
             which_set, batch_size, max_num_batches, shuffle_order, rng)
         self.transformer = transformer
+
 
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""

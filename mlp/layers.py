@@ -13,6 +13,7 @@ respect to the layer parameters.
 """
 
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 import mlp.initialisers as init
 from mlp import DEFAULT_SEED
 
@@ -545,7 +546,22 @@ class ConvolutionalLayer(LayerWithParameters):
         Returns:
             outputs: Array of layer outputs of shape (batch_size, output_dim).
         """
-        raise NotImplementedError
+        
+        sub_shape = (self.kernel_dim_1, self.kernel_dim_2)
+        shape = inputs.shape[0:2] + tuple(
+                np.subtract((
+                self.input_dim_1, self.input_dim_2), sub_shape) + 1
+            ) + sub_shape
+        M = as_strided(inputs, 
+                       shape=shape, 
+                       strides=inputs.strides + inputs.strides[-2:]
+                       ) 
+        output = np.einsum('fcpq, bcyzpq -> bfyz', 
+                           self.kernels[:, :, ::-1, ::-1], M)
+        for i in range(self.num_output_channels):
+            output[:,i,:,:] = output[:,i,:,:] + self.biases[i]
+        return output       
+        
 
     def bprop(self, inputs, outputs, grads_wrt_outputs):
         """Back propagates gradients through a layer.
@@ -566,7 +582,22 @@ class ConvolutionalLayer(LayerWithParameters):
         """
         # Pad the grads_wrt_outputs
 
-        raise NotImplementedError
+        padded_grads = np.pad(grads_wrt_outputs, 
+                              [(0, 0), (0, 0), 
+                               (self.kernel_dim_1 - 1, self.kernel_dim_1 - 1), 
+                               (self.kernel_dim_2 - 1, self.kernel_dim_2 - 1)],
+                               mode='constant')
+        sub_shape = (self.kernel_dim_1, self.kernel_dim_2)
+        shape = padded_grads.shape[0:2] + tuple(
+                np.subtract(padded_grads.shape[-2:], sub_shape) + 1
+                ) + sub_shape
+        M = as_strided(padded_grads, 
+                       shape=shape, 
+                       strides=padded_grads.strides + padded_grads.strides[-2:]
+                       ) 
+        output = np.einsum('fcpq, bfyzpq -> bcyz', self.kernels, M)
+        return output       
+              
 
     def grads_wrt_params(self, inputs, grads_wrt_outputs):
         """Calculates gradients with respect to layer parameters.
@@ -580,7 +611,16 @@ class ConvolutionalLayer(LayerWithParameters):
             `[grads_wrt_kernels, grads_wrt_biases]`.
         """
 
-        raise NotImplementedError
+        sub_shape = grads_wrt_outputs.shape[-2:]
+        shape = inputs.shape[0:2] + tuple(
+                np.subtract(inputs.shape[-2:], sub_shape) + 1
+                ) + sub_shape
+        M = as_strided(inputs, shape=shape, 
+                       strides=inputs.strides + inputs.strides[-2:]) 
+        output = np.einsum('bfpq, bcyzpq -> fcyz', grads_wrt_outputs, M)
+        output1 = output[:,:,::-1,::-1]
+        output2 = np.einsum('bfpq -> f', grads_wrt_outputs)
+        return [output1, output2]
 
     def params_penalty(self):
         """Returns the parameter dependent penalty term for this layer.
@@ -615,6 +655,71 @@ class ConvolutionalLayer(LayerWithParameters):
                     self.kernel_dim_2)
         )
 
+class MaxPoolingLayer(Layer):
+    
+    def __init__(self, pool_size=2):
+        """Construct a new max-pooling layer.
+        
+        Args:
+            pool_size: Positive integer specifying size of pools over
+               which to take maximum value. The outputs of the layer
+               feeding in to this layer must have a dimension which
+               is a multiple of this pool size such that the outputs
+               can be split in to pools with no dimensions left over.
+        """
+        self.pool_size = pool_size
+    
+    def fprop(self, inputs):
+        """Forward propagates activations through the layer transformation.
+        
+        This corresponds to taking the maximum over non-overlapping pools of
+        inputs of a fixed size `pool_size`.
+
+        Args:
+            inputs: Array of layer inputs of shape (batch_size, input_dim).
+
+        Returns:
+            outputs: Array of layer outputs of shape (batch_size, output_dim).
+        """
+        assert tuple(
+                item % self.pool_size for item in inputs.shape[-2:]
+                ) == (0, 0), (
+                'Last two dimensions of inputs must be multiple of pool size')
+        sub_shape = (self.pool_size, self.pool_size)
+        shape = inputs.shape[:2] + tuple(
+                item // self.pool_size for item in inputs.shape[-2:]
+                ) + sub_shape
+        strides = inputs.strides[0:2] + tuple(
+                self.pool_size * item for item in inputs.strides[-2:]
+                ) + inputs.strides[-2:]
+        pooled_inputs = as_strided(inputs, shape=shape, strides=strides)
+        pool_maxes = pooled_inputs.max((-1, -2))
+        self._mask = pooled_inputs == pool_maxes[..., None, None] 
+        return pool_maxes
+
+    def bprop(self, inputs, outputs, grads_wrt_outputs):
+        """Back propagates gradients through a layer.
+
+        Given gradients with respect to the outputs of the layer calculates the
+        gradients with respect to the layer inputs.
+
+        Args:
+            inputs: Array of layer inputs of shape (batch_size, input_dim).
+            outputs: Array of layer outputs calculated in forward pass of
+                shape (batch_size, output_dim).
+            grads_wrt_outputs: Array of gradients with respect to the layer
+                outputs of shape (batch_size, output_dim).
+
+        Returns:
+            Array of gradients with respect to the layer inputs of shape
+            (batch_size, input_dim).
+        """
+        return (self._mask * 
+                grads_wrt_outputs[..., None, None]
+                ).swapaxes(-3, -2).reshape(inputs.shape)
+
+    def __repr__(self):
+        return 'MaxPoolingLayer(pool_size={0})'.format(self.pool_size)
 
 class ReluLayer(Layer):
     """Layer implementing an element-wise rectified linear transformation."""
