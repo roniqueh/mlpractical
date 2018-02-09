@@ -215,7 +215,7 @@ class RMSPropLearningRule(GradientDescentLearningRule):
         super(RMSPropLearningRule, self).initialise(params)
         self.averages = []
         for param in self.params:
-            self.averages.append(np.zeros_like(param))
+            self.averages.append(np.ones_like(param))
 
     def reset(self):
         """Resets any additional state variables to their intial values.
